@@ -1,6 +1,10 @@
 Intro
 =====
+I stole this entire repo from https://github.com/underbluewaters/secret-santa.
 
+I'm putting it here mostly so that next year I don't have to re-do all of the python 3 conversions.
+
+**Begin stolen text:**
 **secret-santa** can help you manage a list of secret santa participants by
 randomly assigning pairings and sending emails. It can avoid pairing 
 couples to their significant other, and allows custom email messages to be 
