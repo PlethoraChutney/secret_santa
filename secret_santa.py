@@ -11,16 +11,6 @@ import sys
 import argparse
 import os
 
-help_message = '''
-To use, fill out config.yml with your own participants. You can also specify
-DONT-PAIR so that people don't get assigned their significant other.
-
-You'll also need to specify your mail server settings. An example is provided
-for routing mail through gmail.
-
-For more information, see README.
-'''
-
 REQRD = (
     'SMTP_SERVER',
     'SMTP_PORT',
