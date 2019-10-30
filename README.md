@@ -9,6 +9,9 @@ method generates a single "loop", then checks to make sure that no pair
 is forbidden by the requirements in config. If there is a pair, it
 (stupdily) randomizes again. Since there's no guarantee you'll ever converge,
 you can manually adjust the number of attempts you'll make to get a good loop.
+If you prefer the old algorithm, which can generate independent chains, you can
+choose it with the `--algorithm` option. The old method is probably more likely
+to converge if you have highly restrictive pairing preferences.
 
 Here's the original readme:
 **secret-santa** can help you manage a list of secret santa participants by
