@@ -8,7 +8,7 @@ import pytz
 import time
 import socket
 import sys
-import getopt
+import argparse
 import os
 
 help_message = '''
@@ -42,9 +42,6 @@ To: {to}
 Subject: {subject}
 
 """
-
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.yml')
-
 class Person:
     def __init__(self, name, email, invalid_matches):
         self.name = name
@@ -62,7 +59,7 @@ class Pair:
     def __str__(self):
         return "%s ---> %s" % (self.giver.name, self.reciever.name)
 
-def parse_yaml(yaml_path=CONFIG_PATH):
+def parse_yaml(yaml_path):
     return yaml.safe_load(open(yaml_path))
 
 def choose_reciever(giver, recievers):
@@ -99,17 +96,30 @@ def create_pairs(g, r, attempt_limit=50, attempt_number = 1):
 
 def new_pair(participants, attempt_limit = 50):
     givers = participants[:]
-    recievers = participants[:]
-    random.shuffle(recievers)
+    good_circle = False
+    attempt = 1
+    while not good_circle and attempt <= attempt_limit:
+        attempt += 1
+        good_circle = True
+        random.shuffle(givers)
+        recievers = givers[:]
+        recievers.append(recievers.pop(recievers.index(recievers[0])))
+        i = -1
+        for giver in givers:
+            i += 1
+            if recievers[i].name in giver.invalid_matches:
+                print(f'Invalid match on attmempt {attempt-1}. Retrying...')
+                good_circle = False
+                continue
+    if not good_circle and attempt > attempt_limit:
+        raise('Failed to find good pairing')
     pairs = []
     i = 0
     while i < len(givers):
         pairs.append(Pair(givers[i], recievers[i]))
         i += 1
 
-    print('New method:')
-    for pair in pairs:
-        print(pair)
+    return pairs
 
 
 class Usage(Exception):
@@ -118,54 +128,56 @@ class Usage(Exception):
 
 
 def main(argv=None):
-    if argv is None:
-        argv = sys.argv
-    try:
-        try:
-            opts, args = getopt.getopt(argv[1:], "shc", ["send", "help"])
-        except (getopt.error, msg):
-            raise Usage(msg)
+    parser = argparse.ArgumentParser(description = 'A script to automatically generate and send secret santa pairings.')
+    parser.add_argument('yaml_path', help = 'Path to config yaml file.')
+    parser.add_argument('-s', '--send', help = 'Send the generated pairings. Default is to show test pairings and not send them.', action = 'store_true')
+    parser.add_argument('-a', '--attempts', help = 'Number of times to try to find a suitable pairing. Default 50', default = 50, action = 'store', type = int)
 
-        # option processing
-        send = False
-        for option, value in opts:
-            if option in ("-s", "--send"):
-                send = True
-            if option in ("-h", "--help"):
-                raise Usage(help_message)
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stdout)
+        return 0
 
-        config = parse_yaml()
-        for key in REQRD:
-            if key not in config.keys():
-                raise Exception(
-                    'Required parameter %s not in yaml config file!' % (key,))
+    args = parser.parse_args()
+    yaml_path = args.yaml_path
+    send = args.send
+    max_attempts = args.attempts
+
+    config = parse_yaml(yaml_path)
+    for key in REQRD:
+        if key not in config.keys():
+            raise Exception(
+                'Required parameter %s not in yaml config file!' % (key,))
 
         participants = config['PARTICIPANTS']
         dont_pair = config['DONT-PAIR']
         if len(participants) < 2:
             raise Exception('Not enough participants specified.')
 
-        givers = []
-        for person in participants:
-            name, email = re.match(r'([^<]*)<([^>]*)>', person).groups()
-            name = name.strip()
-            invalid_matches = []
-            if dont_pair:
-                for pair in dont_pair:
-                    names = [n.strip() for n in pair.split(',')]
-                    if name in names:
-                        # is part of this pair
-                        for member in names:
-                            if name != member:
-                                invalid_matches.append(member)
-            person = Person(name, email, invalid_matches)
-            givers.append(person)
+    givers = []
+    for person in participants:
+        name, email = re.match(r'([^<]*)<([^>]*)>', person).groups()
+        name = name.strip()
+        invalid_matches = []
+        if dont_pair:
+            for pair in dont_pair:
+                names = [n.strip() for n in pair.split(',')]
+                if name in names:
+                    # is part of this pair
+                    for member in names:
+                        if name != member:
+                            invalid_matches.append(member)
+        person = Person(name, email, invalid_matches)
+        givers.append(person)
 
-        recievers = givers[:]
-        pairs = create_pairs(givers, recievers)
-        new_pairs = new_pair(givers)
-        if not send:
-            test_string = """
+    recievers = givers[:]
+#        pairs = create_pairs(givers, recievers)
+    try:
+        pairs = new_pair(givers, max_attempts)
+    except:
+        print('No good pairing found.\nTry increasing the number of attempts, or relaxing pairing requirements.')
+        return(5)
+    if not send:
+        test_string = """
 Test pairings:
 
 %s
@@ -173,43 +185,38 @@ Test pairings:
 To send out emails with new pairings,
 call with the --send argument:
 
-    $ python secret_santa.py --send
+$ python secret_santa.py --send
 
-            """ % ("\n".join([str(p) for p in pairs]))
-            print(test_string)
+        """ % ("\n".join([str(p) for p in pairs]))
+        print(test_string)
 
+    if send:
+        server = smtplib.SMTP(config['SMTP_SERVER'], config['SMTP_PORT'])
+        server.starttls()
+        server.login(config['USERNAME'], config['PASSWORD'])
+    for pair in pairs:
+        zone = pytz.timezone(config['TIMEZONE'])
+        now = zone.localize(datetime.datetime.now())
+        date = now.strftime('%a, %d %b %Y %T %Z') # Sun, 21 Dec 2008 06:25:23 +0000
+        message_id = '<%s@%s>' % (str(time.time())+str(random.random()), socket.gethostname())
+        frm = config['FROM']
+        to = pair.giver.email
+        subject = config['SUBJECT'].format(santa=pair.giver.name, santee=pair.reciever.name)
+        body = (HEADER+config['MESSAGE']).format(
+            date=date,
+            message_id=message_id,
+            frm=frm,
+            to=to,
+            subject=subject,
+            santa=pair.giver.name,
+            santee=pair.reciever.name,
+        )
         if send:
-            server = smtplib.SMTP(config['SMTP_SERVER'], config['SMTP_PORT'])
-            server.starttls()
-            server.login(config['USERNAME'], config['PASSWORD'])
-        for pair in pairs:
-            zone = pytz.timezone(config['TIMEZONE'])
-            now = zone.localize(datetime.datetime.now())
-            date = now.strftime('%a, %d %b %Y %T %Z') # Sun, 21 Dec 2008 06:25:23 +0000
-            message_id = '<%s@%s>' % (str(time.time())+str(random.random()), socket.gethostname())
-            frm = config['FROM']
-            to = pair.giver.email
-            subject = config['SUBJECT'].format(santa=pair.giver.name, santee=pair.reciever.name)
-            body = (HEADER+config['MESSAGE']).format(
-                date=date,
-                message_id=message_id,
-                frm=frm,
-                to=to,
-                subject=subject,
-                santa=pair.giver.name,
-                santee=pair.reciever.name,
-            )
-            if send:
-                result = server.sendmail(frm, [to], body)
-                print("Emailed %s <%s>" % (pair.giver.name, to))
+            result = server.sendmail(frm, [to], body)
+            print("Emailed %s <%s>" % (pair.giver.name, to))
 
-        if send:
-            server.quit()
-
-    except (Usage, err):
-        print >> sys.stderr, sys.argv[0].split("/")[-1] + ": " + str(err.msg)
-        print >> sys.stderr, "\t for help use --help"
-        return 2
+    if send:
+        server.quit()
 
 
 if __name__ == "__main__":
