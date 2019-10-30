@@ -138,12 +138,14 @@ def main(argv=None):
     parser.add_argument('yaml_path', help = 'Path to config yaml file.')
     parser.add_argument('-s', '--send', help = 'Send the generated pairings. Default is to show test pairings and not send them.', action = 'store_true')
     parser.add_argument('-a', '--attempts', help = 'Number of times to try to find a suitable pairing. Default 50', default = 50, action = 'store', type = int)
+    parser.add_argument('--algorithm', choices = ['loop', 'non-loop'], help = 'Which pairing algorithm you want to use. \'loop\' always generates one big loop of givers to recievers, but may be slower than \'non-loop\', which randomly pairs and can generate several independent chains. Default loop.', default = 'loop')
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stdout)
         return 0
 
     args = parser.parse_args()
+    algorithm = args.algorithm
     yaml_path = args.yaml_path
     send = args.send
     max_attempts = args.attempts
@@ -176,12 +178,14 @@ def main(argv=None):
         givers.append(person)
 
     recievers = givers[:]
-#        pairs = create_pairs(givers, recievers)
-    try:
-        pairs = new_pair(givers, max_attempts)
-    except:
-        print('No good pairing found.\nTry increasing the number of attempts, or relaxing pairing requirements.')
-        return(5)
+    if algorithm == 'non-loop':
+        pairs = create_pairs(givers, recievers)
+    else:
+        try:
+            pairs = new_pair(givers, max_attempts)
+        except:
+            print('No good pairing found.\nTry increasing the number of attempts, or relaxing pairing requirements.')
+            return(5)
     if not send:
         test_string = """
 Test pairings:
