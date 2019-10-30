@@ -4,8 +4,11 @@ I stole this entire repo from https://github.com/underbluewaters/secret-santa.
 
 I did this before I knew about forking and I'm too lazy to go do it
 properly, sorry. Anyway, I've also made a few changes to the algorithm used
-to pick pairs, namely I check to make sure that "collisions", pairs where
-the giver of one is the reciever of the other and vice-versa, don't happen.
+to pick pairs. Instead of going through and randomly pairing people, this
+method generates a single "loop", then checks to make sure that no pair
+is forbidden by the requirements in config. If there is a pair, it
+(stupdily) randomizes again. Since there's no guarantee you'll ever converge,
+you can manually adjust the number of attempts you'll make to get a good loop.
 
 Here's the original readme:
 **secret-santa** can help you manage a list of secret santa participants by
