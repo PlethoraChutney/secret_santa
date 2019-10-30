@@ -94,10 +94,16 @@ def create_pairs(g, r, attempt_limit=50, attempt_number = 1):
                 print(f'Tried {attempts-1} times to generate pairs but failed.')
     return pairs
 
-def new_pair(participants, attempt_limit = 50):
+def new_pair(participants, attempt_limit):
     givers = participants[:]
     good_circle = False
     attempt = 1
+
+    # first, generate a copy of the givers and 'rotate' them
+    # one position counter-clockwise. Then run through and
+    # check the matches to see if any are invalid. If any are,
+    # randomize the list and try again, up to a maximum.
+
     while not good_circle and attempt <= attempt_limit:
         attempt += 1
         good_circle = True
@@ -108,9 +114,9 @@ def new_pair(participants, attempt_limit = 50):
         for giver in givers:
             i += 1
             if recievers[i].name in giver.invalid_matches:
-                print(f'Invalid match on attmempt {attempt-1}. Retrying...')
                 good_circle = False
-                continue
+            if not good_circle:
+                break
     if not good_circle and attempt > attempt_limit:
         raise('Failed to find good pairing')
     pairs = []
