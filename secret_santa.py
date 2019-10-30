@@ -89,13 +89,27 @@ def create_pairs(g, r, attempt_limit=50, attempt_number = 1):
                     if pair.giver == o_pair.reciever and pair.reciever == o_pair.giver:
                         raise Exception('Pair collision')
         except:
-            attempts = attempts + 1
+            attempts += 1
             print(f'Collision, attempt number {attempts}')
             if attempts <= attempt_limit:
                 return create_pairs(g, r, attempt_limit, attempts)
             else:
                 print(f'Tried {attempts-1} times to generate pairs but failed.')
     return pairs
+
+def new_pair(participants, attempt_limit = 50):
+    givers = participants[:]
+    recievers = participants[:]
+    random.shuffle(recievers)
+    pairs = []
+    i = 0
+    while i < len(givers):
+        pairs.append(Pair(givers[i], recievers[i]))
+        i += 1
+
+    print('New method:')
+    for pair in pairs:
+        print(pair)
 
 
 class Usage(Exception):
@@ -149,6 +163,7 @@ def main(argv=None):
 
         recievers = givers[:]
         pairs = create_pairs(givers, recievers)
+        new_pairs = new_pair(givers)
         if not send:
             test_string = """
 Test pairings:
