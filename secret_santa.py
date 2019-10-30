@@ -63,7 +63,7 @@ class Pair:
         return "%s ---> %s" % (self.giver.name, self.reciever.name)
 
 def parse_yaml(yaml_path=CONFIG_PATH):
-    return yaml.load(open(yaml_path))
+    return yaml.safe_load(open(yaml_path))
 
 def choose_reciever(giver, recievers):
     choice = random.choice(recievers)
@@ -74,17 +74,27 @@ def choose_reciever(giver, recievers):
     else:
         return choice
 
-def create_pairs(g, r):
+def create_pairs(g, r, attempt_limit=50, attempt_number = 1):
     givers = g[:]
     recievers = r[:]
     pairs = []
+    attempts = attempt_number
     for giver in givers:
         try:
             reciever = choose_reciever(giver, recievers)
             recievers.remove(reciever)
             pairs.append(Pair(giver, reciever))
+            for pair in pairs:
+                for o_pair in pairs:
+                    if pair.giver == o_pair.reciever and pair.reciever == o_pair.giver:
+                        raise Exception('Pair collision')
         except:
-            return create_pairs(g, r)
+            attempts = attempts + 1
+            print(f'Collision, attempt number {attempts}')
+            if attempts <= attempt_limit:
+                return create_pairs(g, r, attempt_limit, attempts)
+            else:
+                print(f'Tried {attempts-1} times to generate pairs but failed.')
     return pairs
 
 
