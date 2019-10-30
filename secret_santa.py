@@ -128,6 +128,7 @@ def main(argv=None):
     parser.add_argument('yaml_path', help = 'Path to config yaml file.')
     parser.add_argument('-s', '--send', help = 'Send the generated pairings. Default is to show test pairings and not send them.', action = 'store_true')
     parser.add_argument('-a', '--attempts', help = 'Number of times to try to find a suitable pairing. Default 50', default = 50, action = 'store', type = int)
+    parser.add_argument('--no-save-pairs', help = 'Don\'t save pairings for later reference.', action = 'store_true')
     parser.add_argument('--algorithm', choices = ['loop', 'non-loop'], help = 'Which pairing algorithm you want to use. \'loop\' always generates one big loop of givers to recievers, but may be slower than \'non-loop\', which randomly pairs and can generate several independent chains. Default loop.', default = 'loop')
 
     if len(sys.argv) == 1:
@@ -139,6 +140,7 @@ def main(argv=None):
     yaml_path = args.yaml_path
     send = args.send
     max_attempts = args.attempts
+    no_save_pairs = args.no_save_pairs
 
     config = parse_yaml(yaml_path)
     for key in REQRD:
@@ -214,6 +216,11 @@ $ python secret_santa.py --send
         if send:
             result = server.sendmail(frm, [to], body)
             print("Emailed %s <%s>" % (pair.giver.name, to))
+
+        if send and not no_save_pairs:
+            with open('pairings_secret.txt', 'w') as outfile:
+                for pair in pairs:
+                    outfile.write(str(pair) + '\n')
 
     if send:
         server.quit()
