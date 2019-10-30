@@ -82,7 +82,7 @@ Here is the example configuration unchanged:
 
 Once configured, call secret-santa:
 
-    python secret_santa.py
+    python secret_santa.py path/to/config.yml
 
 Calling secret-santa without arguments will output a test pairing of
 participants.
