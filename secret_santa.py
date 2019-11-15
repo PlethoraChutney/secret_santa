@@ -125,7 +125,7 @@ class Usage(Exception):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description = 'A script to automatically generate and send secret santa pairings.')
-    parser.add_argument('yaml_path', help = 'Path to config yaml file.')
+    parser.add_argument('-c', '--yaml-path', help = 'Path to config yaml file.', default = 'config.yml')
     parser.add_argument('-s', '--send', help = 'Send the generated pairings. Default is to show test pairings and not send them.', action = 'store_true')
     parser.add_argument('-a', '--attempts', help = 'Number of times to try to find a suitable pairing. Default 50', default = 50, action = 'store', type = int)
     parser.add_argument('--no-save-pairs', help = 'Don\'t save pairings for later reference.', action = 'store_true')
