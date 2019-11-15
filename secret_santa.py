@@ -142,7 +142,12 @@ def main(argv=None):
     max_attempts = args.attempts
     no_save_pairs = args.no_save_pairs
 
-    config = parse_yaml(yaml_path)
+    try:
+        config = parse_yaml(yaml_path)
+    except FileNotFoundError:
+        print('Couldn\'t find your config file. Use --yaml-path to point to it')
+        sys.exit(1)
+
     for key in REQRD:
         if key not in config.keys():
             raise Exception(
